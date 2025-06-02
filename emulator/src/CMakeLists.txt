@@ -6,8 +6,8 @@
 
 
 
-file(GLOB sources ./src/*.cxx)
-file(GLOB headers ./headers/*.hxx)
+file(GLOB_RECURSE sources ./src/*.cxx)
+file(GLOB_RECURSE headers ./headers/*.hxx)
 
 list(FILTER sources EXCLUDE REGEX ".*main.cxx$")
 
