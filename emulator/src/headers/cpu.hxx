@@ -26,8 +26,8 @@ class AVRCpu : public CPU
 private:
     std::array<uint8_t, 32> registers;
     uint8_t sreg;
-    uint16_t sp;
-    uint16_t pc;
+    uint64_t sp;
+    uint64_t pc;
 
 public:
     AVRCpu();

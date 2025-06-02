@@ -9,16 +9,21 @@ class MemoryController;
 
 class NOP : public Instruction
 {
-
+private:
+    AVRInstructionContext* ctx;
+public:
+    NOP(AVRInstructionContext* ctx);
 };
 
 class NOPMatcher : public DecodeRule
 {
 private:
-    AVRCpu* cpu;
-    MemoryController* memoryController;
+    AVRInstructionContext* ctx;
 
 public:
+    NOPMatcher(AVRInstructionContext* ctx);
+
     [[nodiscard]] size_t MinLength() const override;
     [[nodiscard]] bool Matches(const std::vector<uint8_t>& bytes) const override;
+    [[nodiscard]] std::unique_ptr<Instruction> Decode(const std::vector<uint8_t>& bytes) const override;
 };

@@ -5,8 +5,14 @@
 #include <memory>
 
 
+class AVRCpu;
+class MemoryController;
 
-// struct
+struct AVRInstructionContext
+{
+    AVRCpu* cpu = nullptr;
+    MemoryController* memoryController = nullptr;
+};
 
 class Instruction
 {
