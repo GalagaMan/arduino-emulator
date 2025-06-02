@@ -1,0 +1,8 @@
+BasedOnStyle: Microsoft
+
+MaxEmptyLinesToKeep: 2
+
+IndentAccessModifiers: false
+AccessModifierOffset: -4
+
+PointerAlignment: Left
