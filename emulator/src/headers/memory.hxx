@@ -54,87 +54,71 @@ public:
 class MemoryController
 {
 private:
-    std::unordered_map<std::type_index, std::vector<std::unique_ptr<Memory>>> memoryUnits;
-    boost::icl::interval_map<uint64_t, Memory*, boost::icl::total_absorber, std::less, boost::icl::inplace_identity> memoryMap;
-    std::unordered_map<Memory*, std::vector<std::unique_ptr<MemoryObserver>>> memoryObservers;
+    using Interval = boost::icl::interval<uint64_t>::type;
+
+    struct MemoryMap
+    {
+        boost::icl::interval_map<uint64_t, Memory*> map;
+        std::unordered_map<Memory*, uint64_t> baseOffsets;
+    };
+
+    std::unordered_map<std::type_index, std::unique_ptr<MemoryMap>> memoryMaps;
+    std::unordered_map<Memory*, std::vector<std::unique_ptr<MemoryObserver>>> observers;
+    std::vector<std::unique_ptr<Memory>> ownedMemory;
+
 
 public:
-    virtual ~MemoryController() = default;
+    template <typename T>
+    std::vector<uint8_t> Read(uint64_t address, size_t size)
+    {
+        auto it = memoryMaps.find(typeid(T));
+        if (it == memoryMaps.end())
+            throw std::runtime_error("Memory type not registered");
 
-    void RegisterMemory(std::unique_ptr<Memory> memory, uint64_t start);
+        auto& typedMap = *it->second;
+        auto mapIt = typedMap.map.find(address);
+        if (mapIt == typedMap.map.end())
+            throw std::runtime_error("Address not mapped");
+
+        Memory* mem = mapIt->second;
+        uint64_t offset = address - typedMap.baseOffsets.at(mem);
+
+        for (auto& obs : observers[mem])
+            obs->NotifyReadRequested(mem, address, size);
+
+        auto result = mem->ReadLocation(offset, size);
+
+        for (auto& obs : observers[mem])
+            obs->NotifyReadCompleted(mem, address, result);
+
+        return result;
+    }
 
     template <typename T>
-    void RegisterObserver(std::unique_ptr<MemoryObserver> observer, uint64_t startAddress, uint64_t endAddress)
+    void Write(uint64_t address, const std::vector<uint8_t>& data)
     {
-        if (startAddress > endAddress)
-            throw std::invalid_argument("Start address must be less than or equal to end address");
+        auto it = memoryMaps.find(typeid(T));
+        if (it == memoryMaps.end())
+            throw std::runtime_error("Memory type not registered");
 
-        auto& memoryUnitsOfGivenType = memoryUnits[typeid(T)];
+        auto& typedMap = *it->second;
+        auto mapIt = typedMap.map.find(address);
+        if (mapIt == typedMap.map.end())
+            throw std::runtime_error("Address not mapped");
 
-        if (memoryUnitsOfGivenType.empty())
-            throw std::runtime_error("No memory units of the given type are registered");
+        Memory* mem = mapIt->second;
+        uint64_t offset = address - typedMap.baseOffsets.at(mem);
 
-        auto memory = memoryMap.find(boost::icl::interval<uint64_t>::left_open(startAddress, endAddress));
+        for (auto& obs : observers[mem])
+            obs->NotifyWriteRequested(mem, address, data);
 
-        if (memory == memoryMap.end())
-            throw std::runtime_error("No memory unit found in the specified address range");
+        mem->WriteLocation(offset, data);
 
-        memoryObservers[memory->second].emplace_back(std::move(observer));
+        for (auto& obs : observers[mem])
+            obs->NotifyWriteCompleted(mem, address);
     }
 
-    template <typename MemoryType> std::vector<unsigned char> Read(uint64_t address, size_t size)
-    {
-        auto memoryEntry = memoryMap.find(address);
-        if (memoryEntry == memoryMap.end())
-            throw std::runtime_error("No memory unit found in the specified address range");
+    void RegisterMemory(std::unique_ptr<Memory> memory, uint64_t base);
 
-        if (typeid(MemoryType) != typeid(*memoryEntry->second))
-            throw std::runtime_error("Memory type mismatch");
-
-        const auto& interval = memoryEntry->first;
-        uint64_t offset = address - interval.lower(); // Convert to local address
-
-        for (auto& observer : memoryObservers[memoryEntry->second])
-            observer->NotifyReadRequested(memoryEntry->second, address, size);
-
-        auto data = memoryEntry->second->ReadLocation(offset, size);
-
-        for (auto& observer : memoryObservers[memoryEntry->second])
-            observer->NotifyReadCompleted(memoryEntry->second, address, data);
-
-        return data;
-    }
-
-    template <typename MemoryType> void Write(uint64_t address, const std::vector<unsigned char>& data)
-    {
-        auto memoryEntry = memoryMap.find(address);
-        if (memoryEntry == memoryMap.end())
-            throw std::runtime_error("No memory unit found in the specified address range");
-
-        if (typeid(MemoryType) != typeid(*memoryEntry->second))
-            throw std::runtime_error("Memory type mismatch");
-
-        const auto& interval = memoryEntry->first;
-        uint64_t offset = address - interval.lower(); // Convert to local address
-
-        for (auto& observer : memoryObservers[memoryEntry->second])
-            observer->NotifyWriteRequested(memoryEntry->second, address, data);
-
-        memoryEntry->second->WriteLocation(offset, data);
-
-        for (auto& observer : memoryObservers[memoryEntry->second])
-            observer->NotifyWriteCompleted(memoryEntry->second, address);
-    }
-
-    template <typename MemoryType> Memory* GetMemoryUnit(uint64_t address)
-    {
-        auto memory = memoryMap.find(address);
-        if (memory == memoryMap.end())
-            throw std::runtime_error("No memory unit found in the specified address range");
-
-        if (typeid(MemoryType) != typeid(*memory->second))
-            throw std::runtime_error("Memory type mismatch");
-
-        return memory->second;
-    }
+    void RegisterObserver(Memory* target, std::unique_ptr<MemoryObserver> obs);
 };

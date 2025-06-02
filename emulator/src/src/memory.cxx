@@ -31,10 +31,10 @@ size_t SRAMMemory::Size() const
     return storage_.size();
 }
 
-// --- FlashMemory Implementation ---
 FlashMemory::FlashMemory(size_t size)
-    : storage_(size, 0xFF) // Flash memory defaults to erased state 0xFF
-{}
+    : storage_(size, 0xFF)
+{
+}
 
 void FlashMemory::WriteLocation(uint64_t address, std::vector<unsigned char> const& data)
 {
@@ -63,23 +63,37 @@ size_t FlashMemory::Size() const
     return storage_.size();
 }
 
-void MemoryController::RegisterMemory(std::unique_ptr<Memory> memory, uint64_t start)
+void MemoryController::RegisterMemory(std::unique_ptr<Memory> memory, uint64_t base)
 {
-    auto const memorySize = memory->Size();
-    auto const end = start + memorySize;
-    auto* memoryPtr = memory.get();
+    if (!memory)
+        throw std::invalid_argument("Null memory");
 
-    // Check for overlaps
-    for (const auto& entry : memoryMap)
+    const std::type_index dynType = typeid(*memory);
+    Memory* raw = memory.get();
+
+    auto& mapPtr = memoryMaps[dynType];
+    if (!mapPtr)
+        mapPtr = std::make_unique<MemoryMap>();
+
+    auto& typedMap = *mapPtr;
+    Interval interval = boost::icl::interval<uint64_t>::right_open(base, base + memory->Size());
+
+    for (const auto& [existingInterval, _] : typedMap.map)
     {
-        if (boost::icl::intersects(entry.first, boost::icl::interval<uint64_t>::right_open(start, end)))
-            throw std::runtime_error("Memory overlap detected");
+        if (boost::icl::intersects(existingInterval, interval))
+        {
+            throw std::runtime_error("Overlapping region for this memory type");
+        }
     }
 
-    auto& memoryUnitsOfGivenType = memoryUnits[typeid(*memory)];
-    memoryUnitsOfGivenType.emplace_back(std::move(memory));
+    typedMap.map.insert({interval, raw});
+    typedMap.baseOffsets[raw] = base;
+    ownedMemory.push_back(std::move(memory));
+}
 
-    memoryMap += std::make_pair(boost::icl::interval<uint64_t>::right_open(start, end), memoryPtr);
+void MemoryController::RegisterObserver(Memory* target, std::unique_ptr<MemoryObserver> obs)
+{
+    observers[target].emplace_back(std::move(obs));
 }
 
 void MemoryObserver::NotifyReadCompleted(Memory*, uint64_t, std::vector<unsigned char> const&)

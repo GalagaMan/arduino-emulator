@@ -3,28 +3,30 @@
 #include <catch2/catch_all.hpp>
 
 
-// Dummy memory type to simulate edge behavior
 class ROMMemory : public Memory
 {
-    std::vector<unsigned char> storage_;
+    std::vector<unsigned char> storage;
 
 public:
-    explicit ROMMemory(size_t size) : storage_(size, 0xFF)
+    explicit ROMMemory(size_t size) : storage(size, 0xFF)
     {
     }
+
     void WriteLocation(uint64_t, std::vector<unsigned char> const&) override
     {
         throw std::runtime_error("ROM is read-only");
     }
+
     std::vector<unsigned char> ReadLocation(uint64_t addr, size_t size) const override
     {
-        if (addr + size > storage_.size())
+        if (addr + size > storage.size())
             throw std::out_of_range("ROM read OOB");
-        return {storage_.begin() + addr, storage_.begin() + addr + size};
+        return {storage.begin() + addr, storage.begin() + addr + size};
     }
+
     size_t Size() const override
     {
-        return storage_.size();
+        return storage.size();
     }
 };
 
@@ -45,7 +47,8 @@ TEST_CASE("MemoryController advanced usage", "[MemoryController]")
         REQUIRE(controller.Read<SRAMMemory>(0x0100, 2) == std::vector<unsigned char>{0x11, 0x22});
 
         REQUIRE(controller.Read<ROMMemory>(0x0200, 2) == std::vector<unsigned char>{0xFF, 0xFF});
-        REQUIRE_THROWS_WITH(controller.Write<ROMMemory>(0x0200, {0x01}), Catch::Matchers::ContainsSubstring("read-only"));
+        REQUIRE_THROWS_WITH(controller.Write<ROMMemory>(0x0200, {0x01}),
+                            Catch::Matchers::ContainsSubstring("read-only"));
     }
 
     SECTION("Handles multiple blocks of same type")
@@ -60,17 +63,42 @@ TEST_CASE("MemoryController advanced usage", "[MemoryController]")
         REQUIRE(controller.Read<SRAMMemory>(0x0025, 1) == std::vector<unsigned char>{0x12});
     }
 
-    SECTION("Overlapping memory registration is not allowed")
+    SECTION("Overlapping regions allowed across types, data resolves correctly")
     {
-        controller.RegisterMemory(std::make_unique<SRAMMemory>(64), 0x1000);
+        // Overlapping address space: both start at 0x0000, cover 32 bytes
 
-        REQUIRE_THROWS_WITH(controller.RegisterMemory(std::make_unique<FlashMemory>(16), 0x1030),
-                            Catch::Matchers::ContainsSubstring("overlap"));
+        auto sram = std::make_unique<SRAMMemory>(32);
+        auto flash = std::make_unique<FlashMemory>(32);
+
+        Memory* sramptr = sram.get();
+        Memory* flashptr = flash.get();
+
+        controller.RegisterMemory(std::move(sram), 0x0000);
+        controller.RegisterMemory(std::move(flash), 0x0000);
+
+        // Write 0xAA into Flash at 0x0000
+        controller.Write<FlashMemory>(0x0000, {0xAA});
+        // Write 0x55 into SRAM at 0x0000
+        controller.Write<SRAMMemory>(0x0000, {0x55});
+
+        // Read both values back — ensure each memory retains its own data
+        REQUIRE(controller.Read<FlashMemory>(0x0000, 1)[0] == 0xAA);
+        REQUIRE(controller.Read<SRAMMemory>(0x0000, 1)[0] == 0x55);
+
+        // Write 0xBB to 0x0010 in SRAM
+        controller.Write<SRAMMemory>(0x0010, {0xBB});
+        // Write 0xCC to 0x0010 in Flash
+        controller.Write<FlashMemory>(0x0010, {0xCC});
+
+        // Cross-check
+        REQUIRE(controller.Read<SRAMMemory>(0x0010, 1)[0] == 0xBB);
+        REQUIRE(controller.Read<FlashMemory>(0x0010, 1)[0] == 0xCC);
     }
 
     SECTION("Accessing out-of-bound addresses throws")
     {
         controller.RegisterMemory(std::make_unique<SRAMMemory>(32), 0x2000);
+
         REQUIRE_THROWS(controller.Read<SRAMMemory>(0x2000 + 40, 8));
         REQUIRE_THROWS(controller.Write<SRAMMemory>(0x2000 + 31, {0x01, 0x02}));
     }
