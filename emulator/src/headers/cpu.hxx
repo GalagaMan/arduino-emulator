@@ -24,7 +24,6 @@ public:
 class AVRCpu : public CPU
 {
 private:
-    // MemoryController* memoryController;
     std::array<uint8_t, 32> registers;
     uint8_t sreg;
     uint16_t sp;

@@ -26,7 +26,8 @@ public:
     [[nodiscard]] uint64_t Cycles() const;
     [[nodiscard]] std::string const& Mnemonic() const;
 
-    void Execute() const;
+    virtual ~Instruction() = default;
+    virtual void Execute() const;
 };
 
 class InstructionSet
