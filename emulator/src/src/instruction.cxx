@@ -70,6 +70,11 @@ void MemoryBackedAccessBehavior::WriteToSRAM(uint16_t address, std::vector<uint8
     memoryController->Write(sramMemType, address, data);
 }
 
+std::vector<uint8_t> MemoryBackedAccessBehavior::ReadFromSRAM(uint16_t address, uint64_t amount)
+{
+    return memoryController->Read(sramMemType, address, amount);
+}
+
 
 Instruction::Instruction(uint64_t opcode, uint64_t size, uint64_t cycles, std::function<void()> translation,
                          std::string mnemonic)
