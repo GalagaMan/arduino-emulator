@@ -27,6 +27,7 @@ public:
     virtual void SetSPH(uint8_t value) = 0;
 
     virtual void WriteToSRAM(uint16_t address, std::vector<uint8_t> const& data) = 0;
+    virtual std::vector<uint8_t> ReadFromSRAM(uint16_t address, uint64_t amount) = 0;
 };
 
 class MemoryBackedAccessBehavior : public AVRRegisterAccessBehavior
@@ -60,6 +61,7 @@ public:
     void SetSPH(uint8_t value) override;
 
     void WriteToSRAM(uint16_t address, std::vector<uint8_t> const& data) override;
+    std::vector<uint8_t> ReadFromSRAM(uint16_t address, uint64_t amount) override;
 };
 
 struct AVRInstructionContext
