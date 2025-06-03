@@ -26,10 +26,10 @@ public:
 class AVRCpu : public CPU
 {
 private:
-    std::array<uint8_t, 32> registers;
-    uint8_t sreg;
-    uint64_t sp;
-    uint64_t pc;
+    std::array<uint8_t, 32> registers{};
+    uint8_t sreg{};
+    uint64_t sp{};
+    uint64_t pc{};
 
 public:
     AVRCpu(uint64_t speed, class MemoryController* memoryController);
