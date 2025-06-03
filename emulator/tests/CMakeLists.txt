@@ -49,4 +49,4 @@ target_link_libraries(avremul_tests PRIVATE Catch2::Catch2WithMain trompeloeil::
 target_include_directories(avremul_tests PRIVATE ./headers)
 
 
-catch_discover_tests(avremul_tests)
+catch_discover_tests(avremul_tests DISCOVERY_MODE "PRE_TEST")
