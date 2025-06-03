@@ -3,14 +3,65 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <typeindex>
 
 
 class AVRCpu;
 class MemoryController;
 
+class AVRRegisterAccessBehavior
+{
+public:
+    virtual ~AVRRegisterAccessBehavior() = default;
+
+    [[nodiscard]] virtual uint8_t GetRegister(uint8_t index) const = 0;
+    virtual void SetRegister(uint8_t index, uint8_t value) = 0;
+
+    [[nodiscard]] virtual uint8_t GetSREG() const = 0;
+    virtual void SetSREG(uint8_t value) = 0;
+
+    [[nodiscard]] virtual uint8_t GetSPL() const = 0;
+    virtual void SetSPL(uint8_t value) = 0;
+
+    [[nodiscard]] virtual uint8_t GetSPH() const = 0;
+    virtual void SetSPH(uint8_t value) = 0;
+};
+
+class MemoryBackedAccessBehavior : public AVRRegisterAccessBehavior
+{
+private:
+    uint64_t rAddr;
+    uint64_t sregAddr;
+    uint64_t splAddr;
+    uint64_t sphAddr;
+
+    std::type_index sramMemType;
+    std::type_index flashMemType;
+    
+    MemoryController* memoryController;
+
+public:
+    MemoryBackedAccessBehavior(MemoryController* memoryController, std::type_index sramMem,
+                               std::type_index flashMemType, uint64_t rAddress, uint64_t sregAddress,
+                               uint64_t splAddress, uint64_t sphAddress);
+
+    [[nodiscard]] virtual uint8_t GetRegister(uint8_t index) const override;
+    void SetRegister(uint8_t index, uint8_t value) override;
+
+    [[nodiscard]] virtual uint8_t GetSREG() const override;
+    void SetSREG(uint8_t value) override;
+
+    [[nodiscard]] virtual uint8_t GetSPL() const override;
+    void SetSPL(uint8_t value) override;
+
+    [[nodiscard]] virtual uint8_t GetSPH() const override;
+    void SetSPH(uint8_t value) override;
+};
+
 struct AVRInstructionContext
 {
     AVRCpu* cpu = nullptr;
+    AVRRegisterAccessBehavior* accessBehavior = nullptr;
     MemoryController* memoryController = nullptr;
 };
 

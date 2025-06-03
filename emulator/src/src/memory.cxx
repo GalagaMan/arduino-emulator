@@ -91,6 +91,54 @@ void MemoryController::RegisterMemory(std::unique_ptr<Memory> memory, uint64_t b
     ownedMemory.push_back(std::move(memory));
 }
 
+std::vector<uint8_t> MemoryController::Read(std::type_index type, uint64_t address, size_t size)
+{
+    auto it = memoryMaps.find(type);
+    if (it == memoryMaps.end())
+        throw std::runtime_error("Memory type not registered");
+
+    auto& typedMap = *it->second;
+    auto mapIt = typedMap.map.find(address);
+    if (mapIt == typedMap.map.end())
+        throw std::runtime_error("Address not mapped");
+
+    Memory* mem = mapIt->second;
+    uint64_t offset = address - typedMap.baseOffsets.at(mem);
+
+    for (auto& obs : observers[mem])
+        obs->NotifyReadRequested(mem, address, size);
+
+    auto result = mem->ReadLocation(offset, size);
+
+    for (auto& obs : observers[mem])
+        obs->NotifyReadCompleted(mem, address, result);
+
+    return result;
+}
+
+void MemoryController::Write(std::type_index type, uint64_t address, const std::vector<uint8_t>& data)
+{
+    auto it = memoryMaps.find(type);
+    if (it == memoryMaps.end())
+        throw std::runtime_error("Memory type not registered");
+
+    auto& typedMap = *it->second;
+    auto mapIt = typedMap.map.find(address);
+    if (mapIt == typedMap.map.end())
+        throw std::runtime_error("Address not mapped");
+
+    Memory* mem = mapIt->second;
+    uint64_t offset = address - typedMap.baseOffsets.at(mem);
+
+    for (auto& obs : observers[mem])
+        obs->NotifyWriteRequested(mem, address, data);
+
+    mem->WriteLocation(offset, data);
+
+    for (auto& obs : observers[mem])
+        obs->NotifyWriteCompleted(mem, address);
+}
+
 void MemoryController::RegisterObserver(Memory* target, std::unique_ptr<MemoryObserver> obs)
 {
     observers[target].emplace_back(std::move(obs));

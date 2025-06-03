@@ -118,6 +118,37 @@ public:
             obs->NotifyWriteCompleted(mem, address);
     }
 
+    template <typename T>
+    void RegisterMemoryAs(std::unique_ptr<Memory> memory, uint64_t base, uint64_t size)
+    {
+        if (!memory)
+            throw std::invalid_argument("Null memory");
+
+        Memory* raw = memory.get();
+
+        auto& typedMap = memoryMaps[typeid(T)];
+        if (!typedMap)
+            typedMap = std::make_unique<MemoryMap>();
+
+        Interval interval = boost::icl::interval<uint64_t>::right_open(base, base + size);
+
+        for (const auto& [existingInterval, _] : typedMap->map)
+        {
+            if (boost::icl::intersects(existingInterval, interval))
+            {
+                throw std::runtime_error("Overlapping region for this memory type");
+            }
+        }
+
+        typedMap->map.insert({interval, raw});
+        typedMap->baseOffsets[raw] = base;
+        ownedMemory.push_back(std::move(memory));
+    }
+
+    std::vector<uint8_t> Read(std::type_index type, uint64_t address, size_t size);
+
+    void Write(std::type_index type, uint64_t address, const std::vector<uint8_t>& data);
+
     void RegisterMemory(std::unique_ptr<Memory> memory, uint64_t base);
 
     void RegisterObserver(Memory* target, std::unique_ptr<MemoryObserver> obs);

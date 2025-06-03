@@ -12,14 +12,16 @@ class CPU
 {
 private:
     uint64_t speed{};
+    MemoryController* memoryController;
+
+protected:
+    [[nodiscard]] MemoryController* const MemoryController() const;
 
 public:
-    CPU(uint64_t speed);
+    CPU(uint64_t speed, class MemoryController* memoryController);
     
     virtual ~CPU() = default;
 };
-
-// class MemoryController;
 
 class AVRCpu : public CPU
 {
@@ -30,7 +32,7 @@ private:
     uint64_t pc;
 
 public:
-    AVRCpu();
+    AVRCpu(uint64_t speed, class MemoryController* memoryController);
 
     uint8_t GetRegister(uint8_t index) const;
     void SetRegister(uint8_t index, uint8_t value);
