@@ -66,7 +66,6 @@ TEST_CASE("Full instruction chain including stack and branching")
     access.SetSPH(0x00);
     access.SetSPL(0x80); // Set stack pointer
 
-    std::vector<std::string> decodedMnemonics;
 
     int32_t executed = 0;
     while (true)
@@ -82,20 +81,11 @@ TEST_CASE("Full instruction chain including stack and branching")
         if (!instr)
             break;
 
-        std::string mnemonic = instr->Mnemonic();
-        std::println(std::cout, "{}", mnemonic);
-        decodedMnemonics.emplace_back(mnemonic);
-
         instr->Execute();
         ++executed;
 
         if (instr->Opcode() == 0x00)
             break;
-    }
-
-    for (auto const& mnemonic : decodedMnemonics)
-    {
-        std::println(std::cout, "{}", mnemonic);
     }
 
     REQUIRE(access.GetRegister(16) == 0x10); // Final R16 value after add/sub
