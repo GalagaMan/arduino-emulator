@@ -25,6 +25,8 @@ public:
 
     [[nodiscard]] virtual uint8_t GetSPH() const = 0;
     virtual void SetSPH(uint8_t value) = 0;
+
+    virtual void WriteToSRAM(uint16_t address, std::vector<uint8_t> const& data) = 0;
 };
 
 class MemoryBackedAccessBehavior : public AVRRegisterAccessBehavior
@@ -56,6 +58,8 @@ public:
 
     [[nodiscard]] virtual uint8_t GetSPH() const override;
     void SetSPH(uint8_t value) override;
+
+    void WriteToSRAM(uint16_t address, std::vector<uint8_t> const& data) override;
 };
 
 struct AVRInstructionContext

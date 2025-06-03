@@ -65,6 +65,11 @@ void MemoryBackedAccessBehavior::SetSPH(uint8_t value)
     memoryController->Write(sramMemType, sphAddr, {value});
 }
 
+void MemoryBackedAccessBehavior::WriteToSRAM(uint16_t address, std::vector<uint8_t> const& data)
+{
+    memoryController->Write(sramMemType, address, data);
+}
+
 
 Instruction::Instruction(uint64_t opcode, uint64_t size, uint64_t cycles, std::function<void()> translation,
                          std::string mnemonic)
