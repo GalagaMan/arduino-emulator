@@ -8,10 +8,10 @@
 MemoryBackedAccessBehavior::MemoryBackedAccessBehavior(MemoryController* memoryController, std::type_index sramMem,
                                                        std::type_index flashMemType, uint64_t rAddress,
                                                        uint64_t sregAddress, uint64_t splAddress, uint64_t sphAddress)
-    : rAddr(rAddress), sregAddr(sregAddress), splAddr(splAddress), sphAddr(sphAddress), sramMemType(sramMem),
+    : memoryController(memoryController), rAddr(rAddress), sregAddr(sregAddress), splAddr(splAddress), sphAddr(sphAddress), sramMemType(sramMem),
       flashMemType(flashMemType)
 {
-    if (!memoryController)
+    if (!this->memoryController)
         throw std::runtime_error("Memory controller cannot be null");
 }
 
@@ -70,7 +70,7 @@ Instruction::Instruction(uint64_t opcode, uint64_t size, uint64_t cycles, std::f
                          std::string mnemonic)
     : opcode(opcode), size(size), cycles(cycles), translation(std::move(translation)), mnemonic(std::move(mnemonic))
 {
-    if (!translation)
+    if (!this->translation)
         throw std::invalid_argument("Translation function cannot be empty");
 }
 

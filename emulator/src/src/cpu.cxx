@@ -17,3 +17,12 @@ AVRCpu::AVRCpu(uint64_t speed, class MemoryController* memoryController)
 {
 }
 
+void AVRCpu::SetPC(uint64_t value)
+{
+    pc = value;
+}
+
+uint64_t AVRCpu::GetPC() const
+{
+    return pc;
+}

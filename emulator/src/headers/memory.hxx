@@ -119,7 +119,7 @@ public:
     }
 
     template <typename T>
-    void RegisterMemoryAs(std::unique_ptr<Memory> memory, uint64_t base, uint64_t size)
+    void RegisterMemoryAs(std::unique_ptr<Memory> memory, uint64_t base)
     {
         if (!memory)
             throw std::invalid_argument("Null memory");
@@ -130,14 +130,12 @@ public:
         if (!typedMap)
             typedMap = std::make_unique<MemoryMap>();
 
-        Interval interval = boost::icl::interval<uint64_t>::right_open(base, base + size);
+        Interval interval = boost::icl::interval<uint64_t>::right_open(base, base + raw->Size());
 
         for (const auto& [existingInterval, _] : typedMap->map)
         {
             if (boost::icl::intersects(existingInterval, interval))
-            {
                 throw std::runtime_error("Overlapping region for this memory type");
-            }
         }
 
         typedMap->map.insert({interval, raw});

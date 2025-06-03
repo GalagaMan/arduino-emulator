@@ -43,8 +43,8 @@ public:
     bool GetFlagC() const;
     void SetFlagC(bool val);
 
-    uint16_t GetSP() const;
-    void SetSP(uint16_t value);
+    uint64_t GetSP() const;
+    void SetSP(uint64_t value);
 
     uint8_t GetSPL() const;
     void SetSPL(uint8_t value);
@@ -52,6 +52,6 @@ public:
     uint8_t GetSPH() const;
     void SetSPH(uint8_t value);
 
-    uint16_t GetPC() const;
-    void SetPC(uint16_t value);
+    uint64_t GetPC() const;
+    void SetPC(uint64_t value);
 };
