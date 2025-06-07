@@ -32,8 +32,6 @@ target_compile_options(avremul PUBLIC -march=znver3 -mcx16)
 
 set_target_properties(avremul PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED YES)
 
-find_package(OpenSSL REQUIRED)
-
-target_link_libraries(avremul PRIVATE "${PROJECT_NAME}::emuimpl" OpenSSL::Crypto)
+target_link_libraries(avremul PRIVATE "${PROJECT_NAME}::emuimpl")
 
 target_compile_options(avremul PRIVATE -mcx16 -fvectorize -funroll-loops)
