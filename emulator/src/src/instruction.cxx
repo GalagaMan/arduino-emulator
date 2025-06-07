@@ -75,6 +75,31 @@ std::vector<uint8_t> MemoryBackedAccessBehavior::ReadFromSRAM(uint16_t address, 
     return memoryController->Read(sramMemType, address, amount);
 }
 
+MemoryMappedIOBehavior::MemoryMappedIOBehavior(MemoryController* memoryController, uint64_t ioBaseOffset)
+    :memoryController(memoryController), ioBaseOffset(ioBaseOffset)
+{
+}
+
+uint8_t MemoryMappedIOBehavior::GetPIN(AvrIORegister port) const
+{
+}
+
+uint8_t MemoryMappedIOBehavior::GetDDR(AvrIORegister port) const
+{
+}
+
+void MemoryMappedIOBehavior::SetDDR(AvrIORegister port, uint8_t value)
+{
+}
+
+uint8_t MemoryMappedIOBehavior::GetPORT(AvrIORegister port) const
+{
+}
+
+void MemoryMappedIOBehavior::SetPORT(AvrIORegister port, uint8_t value)
+{
+}
+
 
 Instruction::Instruction(uint64_t opcode, uint64_t size, uint64_t cycles, std::function<void()> translation,
                          std::string mnemonic)

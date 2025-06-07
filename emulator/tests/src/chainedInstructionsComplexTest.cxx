@@ -84,6 +84,8 @@ TEST_CASE("Full instruction chain including stack and branching")
         instr->Execute();
         ++executed;
 
+        std::println(std::cout, "{}", instr->Mnemonic());
+        
         if (instr->Opcode() == 0x00)
             break;
     }

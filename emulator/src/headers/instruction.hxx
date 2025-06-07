@@ -30,6 +30,28 @@ public:
     virtual std::vector<uint8_t> ReadFromSRAM(uint16_t address, uint64_t amount) = 0;
 };
 
+enum class AvrIORegister
+{
+    A,
+    B,
+    C,
+    D
+};
+
+class AVRIOBehavior
+{
+public:
+    virtual ~AVRIOBehavior() = default;
+
+    [[nodiscard]]virtual uint8_t GetPIN(AvrIORegister port) const = 0;
+
+    [[nodiscard]]virtual uint8_t GetDDR(AvrIORegister port) const = 0;
+    virtual void SetDDR(AvrIORegister port, uint8_t value) = 0;
+
+    [[nodiscard]] virtual uint8_t GetPORT(AvrIORegister port) const = 0;
+    virtual void SetPORT(AvrIORegister port, uint8_t value) = 0;
+};
+
 class MemoryBackedAccessBehavior : public AVRRegisterAccessBehavior
 {
 private:
@@ -64,11 +86,30 @@ public:
     std::vector<uint8_t> ReadFromSRAM(uint16_t address, uint64_t amount) override;
 };
 
+class MemoryMappedIOBehavior : public AVRIOBehavior
+{
+private:
+    MemoryController* memoryController;
+    uint64_t ioBaseOffset{};
+
+public:
+    MemoryMappedIOBehavior(MemoryController* memoryController, uint64_t ioBaseOffset);
+
+    [[nodiscard]] uint8_t GetPIN(AvrIORegister port) const override;
+
+    [[nodiscard]] uint8_t GetDDR(AvrIORegister port) const override;
+    void SetDDR(AvrIORegister port, uint8_t value) override;
+
+    [[nodiscard]] uint8_t GetPORT(AvrIORegister port) const override;
+    void SetPORT(AvrIORegister port, uint8_t value) override;
+};
+
 struct AVRInstructionContext
 {
     AVRCpu* cpu = nullptr;
     AVRRegisterAccessBehavior* accessBehavior = nullptr;
     MemoryController* memoryController = nullptr;
+    AVRIOBehavior* ioBehavior = nullptr;
 };
 
 class Instruction
